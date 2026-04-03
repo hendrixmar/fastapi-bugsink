@@ -1,0 +1,207 @@
+{
+  "dashboard": {
+    "title": "OTLP Services Overview",
+    "tags": ["otel", "tempo", "services"],
+    "timezone": "browser",
+    "refresh": "30s",
+    "time": { "from": "now-1h", "to": "now" },
+    "uid": "bfhznvx6xt0cga",
+    "templating": {
+      "list": [
+        {
+          "name": "service",
+          "type": "query",
+          "datasource": { "type": "prometheus", "uid": "mimir" },
+          "query": "label_values(traces_spanmetrics_calls_total, service)",
+          "refresh": 2,
+          "includeAll": true,
+          "allValue": ".*",
+          "multi": true,
+          "current": { "selected": true, "text": "All", "value": "$__all" },
+          "label": "Service"
+        }
+      ]
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "Request Rate by Service",
+        "type": "timeseries",
+        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+        "datasource": { "type": "prometheus", "uid": "mimir" },
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "sum by (service) (rate(traces_spanmetrics_calls_total{service=~\"$service\"}[5m]))",
+            "legendFormat": "{{service}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "reqps",
+            "custom": { "fillOpacity": 20, "lineWidth": 2 }
+          }
+        }
+      },
+      {
+        "id": 2,
+        "title": "Error Rate by Service",
+        "type": "timeseries",
+        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+        "datasource": { "type": "prometheus", "uid": "mimir" },
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "sum by (service) (rate(traces_spanmetrics_calls_total{service=~\"$service\", status_code=\"STATUS_CODE_ERROR\"}[5m]))",
+            "legendFormat": "{{service}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "reqps",
+            "custom": { "fillOpacity": 20, "lineWidth": 2 },
+            "color": { "mode": "palette-classic" },
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                { "color": "green", "value": null },
+                { "color": "red", "value": 0.1 }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 3,
+        "title": "P95 Latency by Service",
+        "type": "timeseries",
+        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+        "datasource": { "type": "prometheus", "uid": "mimir" },
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "histogram_quantile(0.95, sum by (service, le) (rate(traces_spanmetrics_latency_bucket{service=~\"$service\"}[5m])))",
+            "legendFormat": "p95 {{service}}"
+          },
+          {
+            "refId": "B",
+            "expr": "histogram_quantile(0.50, sum by (service, le) (rate(traces_spanmetrics_latency_bucket{service=~\"$service\"}[5m])))",
+            "legendFormat": "p50 {{service}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s",
+            "custom": { "fillOpacity": 10, "lineWidth": 2 }
+          }
+        }
+      },
+      {
+        "id": 4,
+        "title": "P95 Latency by Route",
+        "type": "timeseries",
+        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+        "datasource": { "type": "prometheus", "uid": "mimir" },
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "histogram_quantile(0.95, sum by (span_name, le) (rate(traces_spanmetrics_latency_bucket{service=~\"$service\"}[5m])))",
+            "legendFormat": "{{span_name}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s",
+            "custom": { "fillOpacity": 10, "lineWidth": 2 }
+          }
+        }
+      },
+      {
+        "id": 5,
+        "title": "Service Graph",
+        "type": "nodeGraph",
+        "gridPos": { "h": 10, "w": 24, "x": 0, "y": 16 },
+        "datasource": { "type": "tempo", "uid": "tempo" },
+        "targets": [
+          {
+            "refId": "A",
+            "queryType": "serviceMap"
+          }
+        ]
+      },
+      {
+        "id": 6,
+        "title": "Recent Traces",
+        "type": "table",
+        "gridPos": { "h": 10, "w": 24, "x": 0, "y": 26 },
+        "datasource": { "type": "tempo", "uid": "tempo" },
+        "targets": [
+          {
+            "refId": "A",
+            "queryType": "traceqlSearch",
+            "limit": 20,
+            "filters": [
+              {
+                "id": "service-name",
+                "scope": "resource",
+                "tag": "service.name",
+                "operator": "=~",
+                "value": ["$service"]
+              }
+            ]
+          }
+        ],
+        "options": {
+          "showHeader": true,
+          "sortBy": [{ "displayName": "Start time", "desc": true }]
+        }
+      },
+      {
+        "id": 7,
+        "title": "Request Rate by HTTP Method & Status",
+        "type": "barchart",
+        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 36 },
+        "datasource": { "type": "prometheus", "uid": "mimir" },
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "sum by (http_method, http_status_code) (rate(traces_spanmetrics_calls_total{service=~\"$service\"}[5m]))",
+            "legendFormat": "{{http_method}} {{http_status_code}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": { "unit": "reqps" }
+        }
+      },
+      {
+        "id": 8,
+        "title": "Active Services",
+        "type": "stat",
+        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 36 },
+        "datasource": { "type": "prometheus", "uid": "mimir" },
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "count(count by (service) (traces_spanmetrics_calls_total{service=~\"$service\"}))",
+            "legendFormat": "Services"
+          }
+        ],
+        "options": {
+          "colorMode": "background",
+          "textMode": "value_and_name"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                { "color": "blue", "value": null }
+              ]
+            }
+          }
+        }
+      }
+    ]
+  },
+  "overwrite": true
+}

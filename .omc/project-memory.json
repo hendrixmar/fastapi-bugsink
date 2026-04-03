@@ -1,0 +1,102 @@
+{
+  "version": "1.0.0",
+  "lastScanned": 1775197843815,
+  "projectRoot": "/Users/hendrikmartina/projects/example/my-project/fastapi-bugsink",
+  "techStack": {
+    "languages": [
+      {
+        "name": "Python",
+        "version": null,
+        "confidence": "high",
+        "markers": [
+          "requirements.txt"
+        ]
+      }
+    ],
+    "frameworks": [],
+    "packageManager": "pip",
+    "runtime": null
+  },
+  "build": {
+    "buildCommand": null,
+    "testCommand": null,
+    "lintCommand": null,
+    "devCommand": null,
+    "scripts": {}
+  },
+  "conventions": {
+    "namingStyle": null,
+    "importStyle": null,
+    "testPattern": null,
+    "fileOrganization": null
+  },
+  "structure": {
+    "isMonorepo": false,
+    "workspaces": [],
+    "mainDirectories": [],
+    "gitBranches": null
+  },
+  "customNotes": [],
+  "directoryMap": {
+    "__pycache__": {
+      "path": "__pycache__",
+      "purpose": null,
+      "fileCount": 1,
+      "lastAccessed": 1775197843803,
+      "keyFiles": [
+        "main.cpython-314.pyc"
+      ]
+    }
+  },
+  "hotPaths": [
+    {
+      "path": ".woodpecker.yml",
+      "accessCount": 8,
+      "lastAccessed": 1775198284572,
+      "type": "file"
+    },
+    {
+      "path": "requirements.txt",
+      "accessCount": 4,
+      "lastAccessed": 1775231737478,
+      "type": "file"
+    },
+    {
+      "path": "Dockerfile",
+      "accessCount": 4,
+      "lastAccessed": 1775231738845,
+      "type": "file"
+    },
+    {
+      "path": "main.py",
+      "accessCount": 2,
+      "lastAccessed": 1775230865807,
+      "type": "file"
+    },
+    {
+      "path": "ci/otel-dashboard.json",
+      "accessCount": 2,
+      "lastAccessed": 1775235306635,
+      "type": "file"
+    },
+    {
+      "path": "ci/inject_secrets_and_deploy.py",
+      "accessCount": 2,
+      "lastAccessed": 1775240650811,
+      "type": "file"
+    },
+    {
+      "path": ".woodpecker/testing.yml",
+      "accessCount": 1,
+      "lastAccessed": 1775240642892,
+      "type": "file"
+    },
+    {
+      "path": ".woodpecker/production.yml",
+      "accessCount": 1,
+      "lastAccessed": 1775240643758,
+      "type": "file"
+    }
+  ],
+  "userDirectives": []
+}

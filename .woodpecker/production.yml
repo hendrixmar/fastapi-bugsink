@@ -1,0 +1,33 @@
+when:
+  - event: push
+    branch: main
+
+steps:
+  - name: production-build-and-push
+    image: woodpeckerci/plugin-docker-buildx:5
+    settings:
+      repo: pulp.artesanosdigitalescom.com.mx/fastapi-bugsink/app
+      registry: pulp.artesanosdigitalescom.com.mx
+      dockerfile: Dockerfile
+      tags:
+        - production-${CI_COMMIT_SHA}
+        - latest
+      username:
+        from_secret: pulp_user
+      password:
+        from_secret: pulp_password
+
+  - name: production-inject-secrets-and-deploy
+    image: python:3.12-alpine
+    depends_on: [production-build-and-push]
+    environment:
+      DOKPLOY_API_KEY:
+        from_secret: dokploy_api_key
+      INFISICAL_CLIENT_ID:
+        from_secret: infisical_client_id
+      INFISICAL_CLIENT_SECRET:
+        from_secret: infisical_client_secret
+      COMPOSE_ID: ibcDGWxAp6qyvgMCm6UrM
+      INFISICAL_ENVIRONMENT: prod
+    commands:
+      - python3 ci/inject_secrets_and_deploy.py

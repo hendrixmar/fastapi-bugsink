@@ -1,25 +1,25 @@
 when:
   - event: push
-    branch: main
+    branch: testing
 
 steps:
-  - name: build-and-push
+  - name: testing-build-and-push
     image: woodpeckerci/plugin-docker-buildx:5
     settings:
       repo: pulp.artesanosdigitalescom.com.mx/fastapi-bugsink/app
       registry: pulp.artesanosdigitalescom.com.mx
       dockerfile: Dockerfile
       tags:
-        - ${CI_COMMIT_SHA}
-        - latest
+        - testing-${CI_COMMIT_SHA}
+        - testing
       username:
         from_secret: pulp_user
       password:
         from_secret: pulp_password
 
-  - name: inject-secrets-and-deploy
+  - name: testing-inject-secrets-and-deploy
     image: python:3.12-alpine
-    depends_on: [build-and-push]
+    depends_on: [testing-build-and-push]
     environment:
       DOKPLOY_API_KEY:
         from_secret: dokploy_api_key
@@ -27,5 +27,7 @@ steps:
         from_secret: infisical_client_id
       INFISICAL_CLIENT_SECRET:
         from_secret: infisical_client_secret
+      COMPOSE_ID: aRE5CC7pnXHG-Vp-ViGfP
+      INFISICAL_ENVIRONMENT: dev
     commands:
       - python3 ci/inject_secrets_and_deploy.py
