@@ -27,7 +27,7 @@ steps:
         from_secret: infisical_client_id
       INFISICAL_CLIENT_SECRET:
         from_secret: infisical_client_secret
-      COMPOSE_ID: aRE5CC7pnXHG-Vp-ViGfP
+      COMPOSE_ID: SD0CDzsv2o_x3gI8PfHTY
       INFISICAL_ENVIRONMENT: dev
     commands:
       - python3 ci/inject_secrets_and_deploy.py
