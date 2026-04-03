@@ -1,31 +1,33 @@
 when:
-  branch: main
-  event: push
+  - event: push
+    branch: main
 
 steps:
   - name: build-and-push
-    image: woodpeckerci/plugin-docker-buildx
-    privileged: true
+    image: woodpeckerci/plugin-docker-buildx:5
     settings:
-      repo: 172.17.0.1:5000/fastapi-bugsink
-      registry: 172.17.0.1:5000
-      tag: latest
-      username:
-        from_secret: registry_username
-      password:
-        from_secret: registry_password
+      repo: pulp.artesanosdigitalescom.com.mx/fastapi-bugsink/app
+      registry: pulp.artesanosdigitalescom.com.mx
       dockerfile: Dockerfile
-      insecure: true
+      tags:
+        - ${CI_COMMIT_SHA}
+        - latest
+      username:
+        from_secret: pulp_user
+      password:
+        from_secret: pulp_password
 
   - name: deploy
     image: curlimages/curl:latest
+    depends_on: [build-and-push]
+    environment:
+      DOKPLOY_API_KEY:
+        from_secret: dokploy_api_key
     commands:
       - |
         curl -sf -X POST \
           "http://172.17.0.1:3000/api/compose.deploy" \
           -H "Content-Type: application/json" \
-          -H "x-api-key: $$DOKPLOY_API_KEY" \
+          -H "x-api-key: $${DOKPLOY_API_KEY}" \
           -d '{"composeId": "ibcDGWxAp6qyvgMCm6UrM"}'
         echo "Deploy triggered!"
-    secrets:
-      - dokploy_api_key
