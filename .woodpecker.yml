@@ -18,7 +18,7 @@ steps:
         from_secret: pulp_password
 
   - name: inject-secrets-and-deploy
-    image: curlimages/curl:latest
+    image: python:3.12-alpine
     depends_on: [build-and-push]
     environment:
       DOKPLOY_API_KEY:
@@ -28,41 +28,50 @@ steps:
       INFISICAL_CLIENT_SECRET:
         from_secret: infisical_client_secret
     commands:
-      - |
-        INFISICAL_URL="http://172.17.0.1:8088"
-        WORKSPACE_ID="95e5961f-8e52-403c-b83b-479e5b422284"
-        INFISICAL_ENV="dev"
-        COMPOSE_ID="ibcDGWxAp6qyvgMCm6UrM"
-        DOKPLOY_URL="http://172.17.0.1:3000/api"
+      - python3 -c "
+        import json, os, urllib.request
 
-        echo "=== Authenticating with Infisical ==="
-        TOKEN=$(curl -sf "$${INFISICAL_URL}/api/v1/auth/universal-auth/login" \
-          -H "Content-Type: application/json" \
-          -d "{\"clientId\":\"$${INFISICAL_CLIENT_ID}\",\"clientSecret\":\"$${INFISICAL_CLIENT_SECRET}\"}" \
-          | sed -n 's/.*"accessToken":"\([^"]*\)".*/\1/p')
+        INFISICAL_URL = 'http://172.17.0.1:80'
+        INFISICAL_HOST = 'infisical.artesanosdigitalescom.com.mx'
+        WORKSPACE_ID = '95e5961f-8e52-403c-b83b-479e5b422284'
+        INFISICAL_ENV = 'dev'
+        COMPOSE_ID = 'ibcDGWxAp6qyvgMCm6UrM'
+        DOKPLOY_URL = 'http://172.17.0.1:3000/api'
 
-        if [ -z "$TOKEN" ]; then echo "Failed to get Infisical token"; exit 1; fi
-        echo "Token obtained"
+        client_id = os.environ['INFISICAL_CLIENT_ID']
+        client_secret = os.environ['INFISICAL_CLIENT_SECRET']
+        dokploy_key = os.environ['DOKPLOY_API_KEY']
 
-        echo "=== Fetching secrets from Infisical ==="
-        SECRETS_JSON=$(curl -sf "$${INFISICAL_URL}/api/v3/secrets/raw?workspaceId=$WORKSPACE_ID&environment=$INFISICAL_ENV&secretPath=/" \
-          -H "Authorization: Bearer $TOKEN")
+        print('=== Authenticating with Infisical ===')
+        data = json.dumps({'clientId': client_id, 'clientSecret': client_secret}).encode()
+        req = urllib.request.Request(f'{INFISICAL_URL}/api/v1/auth/universal-auth/login', data=data, method='POST')
+        req.add_header('Content-Type', 'application/json')
+        req.add_header('Host', INFISICAL_HOST)
+        token = json.loads(urllib.request.urlopen(req, timeout=10).read())['accessToken']
+        print('Token obtained')
 
-        ENV_VARS=$(echo "$SECRETS_JSON" | sed -n 's/.*"secretKey":"\([^"]*\)"[^}]*"secretValue":"\([^"]*\)".*/\1=\2/p' | tr '\n' '\n')
-        echo "Fetched $(echo "$ENV_VARS" | wc -l) secrets"
+        print('=== Fetching secrets from Infisical ===')
+        req = urllib.request.Request(f'{INFISICAL_URL}/api/v3/secrets/raw?workspaceId={WORKSPACE_ID}&environment={INFISICAL_ENV}&secretPath=/')
+        req.add_header('Authorization', f'Bearer {token}')
+        req.add_header('Host', INFISICAL_HOST)
+        secrets = json.loads(urllib.request.urlopen(req, timeout=10).read())['secrets']
+        env_lines = [f\"{s['secretKey']}={s['secretValue']}\" for s in secrets]
+        env_content = chr(10).join(env_lines)
+        print(f'Fetched {len(env_lines)} secrets')
 
-        echo "=== Pushing secrets to Dokploy ==="
-        ESCAPED_ENV=$(printf '%s' "$ENV_VARS" | sed 's/\\/\\\\/g; s/"/\\"/g' | sed ':a;N;$!ba;s/\n/\\n/g')
+        print('=== Pushing secrets to Dokploy ===')
+        payload = json.dumps({'composeId': COMPOSE_ID, 'env': env_content}).encode()
+        req = urllib.request.Request(f'{DOKPLOY_URL}/compose.update', data=payload, method='POST')
+        req.add_header('Content-Type', 'application/json')
+        req.add_header('x-api-key', dokploy_key)
+        urllib.request.urlopen(req, timeout=10)
+        print('Secrets injected')
 
-        curl -sf -X POST "$DOKPLOY_URL/compose.update" \
-          -H "Content-Type: application/json" \
-          -H "x-api-key: $${DOKPLOY_API_KEY}" \
-          -d "{\"composeId\":\"$COMPOSE_ID\",\"env\":\"$ESCAPED_ENV\"}"
-        echo "Secrets injected"
-
-        echo "=== Triggering deploy ==="
-        curl -sf -X POST "$DOKPLOY_URL/compose.deploy" \
-          -H "Content-Type: application/json" \
-          -H "x-api-key: $${DOKPLOY_API_KEY}" \
-          -d "{\"composeId\":\"$COMPOSE_ID\"}"
-        echo "Deploy triggered!"
+        print('=== Triggering deploy ===')
+        payload = json.dumps({'composeId': COMPOSE_ID}).encode()
+        req = urllib.request.Request(f'{DOKPLOY_URL}/compose.deploy', data=payload, method='POST')
+        req.add_header('Content-Type', 'application/json')
+        req.add_header('x-api-key', dokploy_key)
+        urllib.request.urlopen(req, timeout=10)
+        print('Deploy triggered!')
+        "
