@@ -1,0 +1,7 @@
+{
+  "tool_name": "Bash",
+  "tool_input_preview": "{\"command\":\"ssh el-telar-ssh \\\"docker exec fastapi-bugsink python3 -c \\\\\\\"\\nimport urllib.request, json\\ntoken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdXRoTWV0aG9kIjoiZW1haWwiLCJhdXRoVG9rZW5UeXBlI...",
+  "error": "Exit code 1\nTraceback (most recent call last):\n  File \"<string>\", line 11, in <module>\nNameError: name 'secretKey' is not defined",
+  "timestamp": "2026-04-03T02:05:04.829Z",
+  "retry_count": 1
+}
