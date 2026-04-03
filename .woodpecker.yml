@@ -18,16 +18,24 @@ steps:
         from_secret: pulp_password
 
   - name: deploy
-    image: curlimages/curl:latest
+    image: docker:cli
     depends_on: [build-and-push]
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
     environment:
       DOKPLOY_API_KEY:
         from_secret: dokploy_api_key
+      PULP_USER:
+        from_secret: pulp_user
+      PULP_PASSWORD:
+        from_secret: pulp_password
     commands:
+      - echo "$${PULP_PASSWORD}" | docker login localhost:8088 -u "$${PULP_USER}" --password-stdin
+      - docker pull localhost:8088/fastapi-bugsink/app:latest
+      - docker tag localhost:8088/fastapi-bugsink/app:latest pulp.artesanosdigitalescom.com.mx/fastapi-bugsink/app:latest
       - |
-        curl -sf -X POST \
-          "http://172.17.0.1:3000/api/compose.deploy" \
-          -H "Content-Type: application/json" \
-          -H "x-api-key: $${DOKPLOY_API_KEY}" \
-          -d '{"composeId": "ibcDGWxAp6qyvgMCm6UrM"}'
-        echo "Deploy triggered!"
+        wget -qO- --header="Content-Type: application/json" \
+          --header="x-api-key: $${DOKPLOY_API_KEY}" \
+          --post-data='{"composeId": "ibcDGWxAp6qyvgMCm6UrM"}' \
+          "http://172.17.0.1:3000/api/compose.deploy"
+      - echo "Deploy triggered!"
