@@ -3,8 +3,16 @@ when:
     branch: main
 
 steps:
+  - name: production-lint-and-test
+    image: python:3.12-slim
+    commands:
+      - pip install -q -r requirements.txt
+      - ruff check .
+      - pytest tests/ -v
+
   - name: production-build-and-push
     image: woodpeckerci/plugin-docker-buildx:5
+    depends_on: [production-lint-and-test]
     settings:
       repo: pulp.artesanosdigitalescom.com.mx/fastapi-bugsink/app
       registry: pulp.artesanosdigitalescom.com.mx
@@ -12,6 +20,8 @@ steps:
       tags:
         - production-${CI_COMMIT_SHA}
         - latest
+      build_args:
+        - SERVICE_VERSION=${CI_COMMIT_SHA}
       username:
         from_secret: pulp_user
       password:

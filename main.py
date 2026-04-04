@@ -1,5 +1,6 @@
 import logging
 import os
+from contextlib import asynccontextmanager
 
 import sentry_sdk
 from dotenv import load_dotenv
@@ -15,16 +16,19 @@ from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from sentry_sdk.integrations.fastapi import FastApiIntegration
 from sentry_sdk.integrations.starlette import StarletteIntegration
 
-load_dotenv()
+ENVIRONMENT = os.environ.get("ENVIRONMENT", "production")
+
+if ENVIRONMENT != "production":
+    load_dotenv()
 
 # --- OpenTelemetry setup ---
 OTEL_ENDPOINT = os.environ.get("OTEL_EXPORTER_OTLP_ENDPOINT", "http://10.0.1.50:4318")
 SERVICE_NAME = os.environ.get("OTEL_SERVICE_NAME", "fastapi-bugsink")
-ENVIRONMENT = os.environ.get("ENVIRONMENT", "production")
+SERVICE_VERSION = os.environ.get("SERVICE_VERSION", "dev")
 
 resource = Resource.create({
     "service.name": SERVICE_NAME,
-    "service.version": "1.0.0",
+    "service.version": SERVICE_VERSION,
     "deployment.environment": ENVIRONMENT,
 })
 
@@ -47,20 +51,37 @@ sentry_sdk.init(
         FastApiIntegration(),
         StarletteIntegration(),
     ],
-    send_default_pii=True,
+    send_default_pii=False,
     traces_sample_rate=0,  # Bugsink does not support traces
     environment=ENVIRONMENT,
+    release=SERVICE_VERSION,
 )
 
+
+# --- Graceful shutdown ---
+@asynccontextmanager
+async def lifespan(app):
+    yield
+    provider.shutdown()
+    sentry_sdk.flush(timeout=5)
+
+
 # --- FastAPI app ---
-app = FastAPI(title="FastAPI Bugsink Demo", version="1.0.0")
+app = FastAPI(
+    title="FastAPI Bugsink Demo",
+    version="1.0.0",
+    lifespan=lifespan,
+    docs_url=None if ENVIRONMENT == "production" else "/docs",
+    redoc_url=None if ENVIRONMENT == "production" else "/redoc",
+    openapi_url=None if ENVIRONMENT == "production" else "/openapi.json",
+)
 FastAPIInstrumentor.instrument_app(app)
 tracer = trace.get_tracer(__name__)
 
 
 @app.get("/")
 def root():
-    return {"status": "ok", "service": "fastapi-bugsink"}
+    return {"status": "ok", "service": SERVICE_NAME, "version": SERVICE_VERSION}
 
 
 @app.get("/health")
