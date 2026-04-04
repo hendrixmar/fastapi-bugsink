@@ -32,3 +32,21 @@ def test_error_raises():
             client.get("/error")
         except ZeroDivisionError:
             pass  # Expected - Sentry captures and re-raises in test mode
+
+
+def test_metrics():
+    response = client.get("/metrics")
+    assert response.status_code == 200
+    assert "http_requests_total" in response.text
+    assert "http_request_duration_seconds" in response.text
+
+
+def test_request_id_generated():
+    response = client.get("/")
+    assert "X-Request-ID" in response.headers
+    assert len(response.headers["X-Request-ID"]) > 0
+
+
+def test_request_id_forwarded():
+    response = client.get("/", headers={"X-Request-ID": "test-123"})
+    assert response.headers["X-Request-ID"] == "test-123"
