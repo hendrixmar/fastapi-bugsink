@@ -1,9 +1,8 @@
 when:
-  - event: push
+  - event: pull_request_closed
     branch:
       - feature/*
       - fix/*
-    action: deleted
 
 steps:
   - name: fetch-ci-tools
