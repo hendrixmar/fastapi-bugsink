@@ -8,7 +8,7 @@ steps:
   - name: fetch-ci-tools
     image: alpine/git
     commands:
-      - git clone --depth 1 --branch v1 https://github.com/hendrixmar/ci-shared.git /tmp/ci
+      - git clone --depth 1 --branch v1 https://github.com/hendrixmar/ci-shared.git .ci-shared
 
   - name: ephemeral-lint-and-test
     image: python:3.12-slim
@@ -47,4 +47,4 @@ steps:
       DOKPLOY_ENVIRONMENT_ID:
         from_secret: dokploy_environment_id
     commands:
-      - python3 /tmp/ci/ephemeral.py create --branch ${CI_COMMIT_BRANCH} --image pulp.artesanosdigitalescom.com.mx/fastapi-bugsink/app:ephemeral-${CI_COMMIT_SHA}
+      - python3 .ci-shared/ephemeral.py create --branch ${CI_COMMIT_BRANCH} --image pulp.artesanosdigitalescom.com.mx/fastapi-bugsink/app:ephemeral-${CI_COMMIT_SHA}
