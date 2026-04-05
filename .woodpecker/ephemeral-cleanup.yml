@@ -1,0 +1,22 @@
+when:
+  - event: push
+    branch:
+      - feature/*
+      - fix/*
+    action: deleted
+
+steps:
+  - name: fetch-ci-tools
+    image: alpine/git
+    commands:
+      - git clone --depth 1 --branch v1 https://github.com/hendrixmar/ci-shared.git /tmp/ci
+
+  - name: ephemeral-destroy
+    image: python:3.12-alpine
+    depends_on: [fetch-ci-tools]
+    environment:
+      DOKPLOY_API_KEY:
+        from_secret: dokploy_api_key
+      PROJECT_NAME: fastapi-bugsink
+    commands:
+      - python3 /tmp/ci/ephemeral.py destroy --branch ${CI_COMMIT_BRANCH}

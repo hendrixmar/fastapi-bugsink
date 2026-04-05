@@ -1,6 +1,8 @@
 when:
   - event: push
-    branch: testing
+    branch:
+      - feature/*
+      - fix/*
 
 steps:
   - name: fetch-ci-tools
@@ -8,29 +10,22 @@ steps:
     commands:
       - git clone --depth 1 --branch v1 https://github.com/hendrixmar/ci-shared.git /tmp/ci
 
-  - name: testing-lint-and-test
+  - name: ephemeral-lint-and-test
     image: python:3.12-slim
     commands:
       - pip install -q -r requirements.txt
       - ruff check .
       - pytest tests/ -v
 
-  - name: testing-dependency-audit
-    image: python:3.12-slim
-    commands:
-      - pip install -q pip-audit -r requirements.txt
-      - pip-audit --strict --desc
-
-  - name: testing-build-and-push
+  - name: ephemeral-build-and-push
     image: woodpeckerci/plugin-docker-buildx:5
-    depends_on: [testing-lint-and-test, testing-dependency-audit]
+    depends_on: [ephemeral-lint-and-test]
     settings:
       repo: pulp.artesanosdigitalescom.com.mx/fastapi-bugsink/app
       registry: pulp.artesanosdigitalescom.com.mx
       dockerfile: Dockerfile
       tags:
-        - testing-${CI_COMMIT_SHA}
-        - testing
+        - ephemeral-${CI_COMMIT_SHA}
       build_args:
         - SERVICE_VERSION=${CI_COMMIT_SHA}
       username:
@@ -38,15 +33,9 @@ steps:
       password:
         from_secret: pulp_password
 
-  - name: testing-image-scan
-    image: aquasec/trivy:latest
-    depends_on: [testing-build-and-push]
-    commands:
-      - trivy image --severity HIGH,CRITICAL --exit-code 0 --no-progress pulp.artesanosdigitalescom.com.mx/fastapi-bugsink/app:testing-${CI_COMMIT_SHA}
-
-  - name: testing-inject-secrets-and-deploy
+  - name: ephemeral-deploy
     image: python:3.12-alpine
-    depends_on: [fetch-ci-tools, testing-image-scan]
+    depends_on: [fetch-ci-tools, ephemeral-build-and-push]
     environment:
       OPENBAO_ROLE_ID:
         from_secret: openbao_role_id
@@ -54,8 +43,8 @@ steps:
         from_secret: openbao_secret_id
       DOKPLOY_API_KEY:
         from_secret: dokploy_api_key
-      COMPOSE_ID: SD0CDzsv2o_x3gI8PfHTY
       PROJECT_NAME: fastapi-bugsink
-      OPENBAO_ENV: dev
+      DOKPLOY_ENVIRONMENT_ID:
+        from_secret: dokploy_environment_id
     commands:
-      - python3 /tmp/ci/openbao_deploy.py
+      - python3 /tmp/ci/ephemeral.py create --branch ${CI_COMMIT_BRANCH} --image pulp.artesanosdigitalescom.com.mx/fastapi-bugsink/app:ephemeral-${CI_COMMIT_SHA}

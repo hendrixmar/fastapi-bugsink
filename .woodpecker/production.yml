@@ -3,6 +3,11 @@ when:
     branch: main
 
 steps:
+  - name: fetch-ci-tools
+    image: alpine/git
+    commands:
+      - git clone --depth 1 --branch v1 https://github.com/hendrixmar/ci-shared.git /tmp/ci
+
   - name: production-lint-and-test
     image: python:3.12-slim
     commands:
@@ -41,15 +46,16 @@ steps:
 
   - name: production-inject-secrets-and-deploy
     image: python:3.12-alpine
-    depends_on: [production-image-scan]
+    depends_on: [fetch-ci-tools, production-image-scan]
     environment:
+      OPENBAO_ROLE_ID:
+        from_secret: openbao_role_id
+      OPENBAO_SECRET_ID:
+        from_secret: openbao_secret_id
       DOKPLOY_API_KEY:
         from_secret: dokploy_api_key
-      INFISICAL_CLIENT_ID:
-        from_secret: infisical_client_id
-      INFISICAL_CLIENT_SECRET:
-        from_secret: infisical_client_secret
       COMPOSE_ID: ibcDGWxAp6qyvgMCm6UrM
-      INFISICAL_ENVIRONMENT: prod
+      PROJECT_NAME: fastapi-bugsink
+      OPENBAO_ENV: prod
     commands:
-      - python3 ci/inject_secrets_and_deploy.py
+      - python3 /tmp/ci/openbao_deploy.py
