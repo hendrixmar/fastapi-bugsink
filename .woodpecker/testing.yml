@@ -18,6 +18,7 @@ steps:
   - name: testing-dependency-audit
     image: python:3.12-slim
     commands:
+      - pip install -q --upgrade pip
       - pip install -q pip-audit -r requirements.txt
       - pip-audit --strict --desc
 
