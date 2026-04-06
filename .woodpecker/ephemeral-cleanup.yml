@@ -1,8 +1,5 @@
 when:
   - event: pull_request_closed
-    branch:
-      - feature/*
-      - fix/*
 
 steps:
   - name: fetch-ci-tools
