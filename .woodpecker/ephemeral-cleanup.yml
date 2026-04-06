@@ -15,4 +15,4 @@ steps:
         from_secret: dokploy_api_key
       PROJECT_NAME: fastapi-bugsink
     commands:
-      - python3 .ci-shared/ephemeral.py destroy --branch ${CI_COMMIT_BRANCH}
+      - python3 .ci-shared/ephemeral.py destroy --branch ${CI_COMMIT_SOURCE_BRANCH}
