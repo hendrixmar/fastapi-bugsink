@@ -12,7 +12,7 @@ steps:
     image: python:3.12-slim
     commands:
       - pip install -q -r requirements.txt
-      - ruff check .
+      - ruff check . --exclude .ci-shared
       - pytest tests/ -v
 
   - name: production-dependency-audit
