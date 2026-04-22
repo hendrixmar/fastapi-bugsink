@@ -1,0 +1,14 @@
+failure-threshold: error
+
+ignored:
+  - DL3013  # pip packages pinned via requirements.txt, not inline in Dockerfile
+
+trusted-registries:
+  - docker.io
+  - pulp.artesanosdigitalescom.com.mx
+
+override:
+  error:
+    - DL3002  # Do not switch to root USER
+    - DL3004  # Do not use sudo
+    - DL3025  # Use arguments JSON notation for CMD/ENTRYPOINT

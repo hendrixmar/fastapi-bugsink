@@ -22,9 +22,14 @@ steps:
       - pip install -q pip-audit -r requirements.txt
       - pip-audit --strict --desc
 
+  - name: production-dockerfile-lint
+    image: hadolint/hadolint:latest-alpine
+    commands:
+      - hadolint Dockerfile
+
   - name: production-build-and-push
     image: woodpeckerci/plugin-docker-buildx:5
-    depends_on: [production-lint-and-test, production-dependency-audit]
+    depends_on: [production-lint-and-test, production-dependency-audit, production-dockerfile-lint]
     settings:
       repo: pulp.artesanosdigitalescom.com.mx/fastapi-bugsink/app
       registry: pulp.artesanosdigitalescom.com.mx
@@ -38,6 +43,24 @@ steps:
         from_secret: pulp_user
       password:
         from_secret: pulp_password
+
+  - name: production-image-scan
+    image: ghcr.io/aquasecurity/trivy:latest
+    depends_on: [production-build-and-push]
+    failure: ignore
+    environment:
+      TRIVY_USERNAME:
+        from_secret: pulp_user
+      TRIVY_PASSWORD:
+        from_secret: pulp_password
+    commands:
+      - trivy image
+          --severity HIGH,CRITICAL
+          --ignore-unfixed
+          --exit-code 0
+          --no-progress
+          --scanners vuln,secret,misconfig
+          pulp.artesanosdigitalescom.com.mx/fastapi-bugsink/app:production-${CI_COMMIT_SHA}
 
   - name: production-inject-secrets-and-deploy
     image: python:3.12-alpine

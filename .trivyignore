@@ -1,0 +1,21 @@
+# .trivyignore — accepted CVEs / misconfigs with justification
+#
+# Format: one CVE ID, misconfig ID, or secret rule ID per line. Blank lines and
+# lines starting with "#" are ignored. Trailing "exp:YYYY-MM-DD" sets an
+# expiry after which Trivy fails again so ignores do not rot silently.
+#
+# Policy:
+#   - Every entry MUST have a justification comment on the line above it.
+#   - Every entry MUST have an expiry no more than 90 days out.
+#   - Prefer fixing over ignoring. If upstream has no fix, use --ignore-unfixed
+#     (already set in the pipelines) instead of listing here.
+#
+# Examples (remove before use):
+#
+# # setuptools <70 RCE — mitigated: container runs as non-root `app` user and
+# # pip install is never invoked at runtime. Re-evaluate when upstream ships a fix.
+# CVE-2024-6345 exp:2026-07-01
+#
+# # Dockerfile misconfig: no HEALTHCHECK — false positive, we set HEALTHCHECK
+# # in the Dockerfile but Trivy does not parse the CMD form correctly.
+# AVD-DS-0026 exp:2026-07-01
